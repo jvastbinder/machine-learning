@@ -1,4 +1,5 @@
 from math import exp, sqrt
+from random import random
 
 
 def adjustThetasWeights(n, error, guesses, thetas, weights):
@@ -14,8 +15,8 @@ def adjustThetasWeights(n, error, guesses, thetas, weights):
     weights[1][0][1] += error[1][0] * guesses[0][0]
     weights[1][1][1] += error[1][1] * guesses[0][1]
 
-    for i in range(len(weights)):
-        for j in range(len(weights[i])):
+    for i in range(len(thetas)):
+        for j in range(len(thetas[i])):
             thetas[i][j] += error[i][j]
 
     return thetas, weights
@@ -88,23 +89,83 @@ def epoch(data, thetas, weights):
     return allGuesses, totalError, thetas, weights
 
 
+def initThetas(numOutputs, numHiddenLayers, numPerLayer):
+    thetas = []
+
+    for i in range(numHiddenLayers):
+        layer = []
+        for j in range(numPerLayer):
+            layer.append(random())
+        thetas.append(layer)
+
+    layer = []
+    for i in range(numOutputs):
+        layer.append(random())
+    thetas.append(layer)
+
+    return thetas
+
+
+def initWeights(numInputs, numOutputs, numHiddenLayers, numPerLayer):
+    weights = []
+
+    layer = []
+    for i in range(numInputs):
+        layer.append(random())
+    weights.append(layer)
+
+    for i in range(numHiddenLayers):
+        layer = []
+        for j in range(numPerLayer):
+            layer.append(random())
+        weights.append(layer)
+
+    layer = []
+    for i in range(numOutputs):
+        layer.append(random())
+    weights.append(layer)
+
+    return weights
+
+
+def initNet(numInputs, numOutputs, numHiddenLayers, numPerLayer):
+    thetas = initThetas(numOutputs, numHiddenLayers, numPerLayer)
+    weights = initWeights(numInputs, numOutputs, numHiddenLayers, numPerLayer)
+
+    return thetas, weights
+
+
+def readInData(filename):
+    inFile = open(filename, 'r')
+    numInputs = int(inFile.readline())
+    numOutputs = int(inFile.readline())
+    numHiddenLayers = int(inFile.readline())
+    numPerLayer = int(inFile.readline())
+    rawData = inFile.read().split('\n')
+
+    trainingSet = []
+    for example in rawData:
+        formatted = example.split()
+        realEx = []
+        for num in formatted:
+            realEx.append(int(num))
+        trainingSet.append(realEx)
+
+    return trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer
+
+
+
 def main():
     counter = 0
-    trainingSet = [(1, 1, 0, 1),
-                   (1, 0, 1, 0),
-                   (0, 1, 1, 0),
-                   (0, 0, 0, 1)]
-    guesses = [(1, 1, 0, 1),
-               (1, 0, 1, 0),
-               (0, 1, 1, 0),
-               (0, 0, 0, 1)]
-    thetas = [[.1, -.1],
-              [-.2, .3]]
-    weights = [[[.2, .4], [-.3, .3]],
-               [[.3, .5], [-.2, -.4]]]
+    guesses = []
+
+    trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer = readInData('xordata.txt')
+    thetas, weights = initNet(numInputs, numOutputs, numHiddenLayers, numPerLayer)
+    print(thetas)
+    print(weights)
 
     error = 1000
-    threshold = 0.00001
+    threshold = 0.001
 
     while sqrt(error ** 2) > threshold:
         guesses, error, thetas, weights = epoch(trainingSet, thetas, weights)
@@ -121,6 +182,7 @@ def main():
                     print('%5.3f ' % num, end='')
                 print()
             print("Error: %5.6f" % error)
+            print("Epochs:", counter)
             print()
 
 
