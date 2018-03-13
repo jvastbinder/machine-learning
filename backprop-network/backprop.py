@@ -1,62 +1,65 @@
 from math import exp, sqrt
 from random import random
 
+trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer = (0,0,0,0,0)
 
-def adjustThetasWeights(n, error, guesses, thetas, weights):
-    weights[0][0][0] += error[0][0] * n[0]
-    weights[0][1][0] += error[0][1] * n[1]
 
-    weights[0][0][1] += error[0][0] * n[0]
-    weights[0][1][1] += error[0][1] * n[1]
-
-    weights[1][0][0] += error[1][0] * guesses[0][0]
-    weights[1][1][0] += error[1][1] * guesses[0][1]
-
-    weights[1][0][1] += error[1][0] * guesses[0][0]
-    weights[1][1][1] += error[1][1] * guesses[0][1]
-
+def adjustThetas(error, thetas, lrate):
     for i in range(len(thetas)):
         for j in range(len(thetas[i])):
-            thetas[i][j] += error[i][j]
+            thetas[i][j] += error[i][j] * lrate
+    return thetas
+
+
+def adjustWeights(n, error, guesses, weights, lrate):
+    for i in range(len(weights)):
+        for j in range(len(weights[i])):
+            for k in range(len(weights[i][j])):
+                if i == 0:
+                    guess = n[j]
+                else:
+                    guess = guesses[i-1][j]
+                weights[i][k][j] += error[i][k] * guess * lrate
+
+    return weights
+
+
+def adjustThetasWeights(n, error, guesses, thetas, weights, lrate):
+    weights = adjustWeights(n, error, guesses, weights, lrate)
+    thetas = adjustThetas(error, thetas, lrate)
 
     return thetas, weights
 
 
-def calcError(n, guesses):
-    error = [[0, 0],
-             [0, 0]]
+def sumOfErrDrv(weights, error, idx1, idx2):
+    sumErr = 0
+    for j in range(len(weights[idx1][idx2])):
+        sumErr += error[idx1 + 1][j] * weights[idx1 + 1][j][idx2]
+    return sumErr
+
+
+def calcError(n, guesses, weights):
+    global numInputs
+    error = []
 
     for i in range(-1, 0 - len(guesses) - 1, -1):
+        error.insert(0, [])
         for j in range(len(guesses[i])):
             guess = guesses[i][j]
             if i == -1:
-                error[i][j] = guess * (1 - guess) * (n[j + 2] - guess)
+                error[i].append(guess * (1 - guess) * (n[j + numInputs] - guess))
             else:
-                error[0][0] = guesses[0][0] * (1 - guesses[0][0]) * ((error[-1][0] * .3) + (error[-1][1] * -.2))
-                error[0][1] = guesses[0][1] * (1 - guesses[0][1]) * ((error[-1][0] * .5) + (error[-1][1] * -.4))
+                error[i].append(guess * (1 - guess) * sumOfErrDrv(weights, error, i, j))
 
     return error
 
 
-def sumLst(lst):
-    total = 0
-
-    for layer in lst:
-        for node in layer:
-            total += node
-
-    return total
-
-
-def sigmoid(x):
-    return 1 / (1 + exp(-x))
-
-
 def feedForward(n, thetas, weights):
-    guesses = [[0, 0],
-               [0, 0]]
+    global numOutputs, numInputs
+    guesses = []
 
     for i in range(len(thetas)):  # for each layer in network
+        guesses.append([])
         for j in range(len(thetas[i])):  # for each node in layer
             val = thetas[i][j]
             for k in range(len(weights[i][j])):  # for each connection to node
@@ -65,27 +68,65 @@ def feedForward(n, thetas, weights):
                 else:  # else use previous layer's output
                     x = guesses[i - 1][k]
                 val += (x * weights[i][j][k])
-            guesses[i][j] = sigmoid(val)
+            guesses[i].append(sigmoid(val))
 
     return guesses
 
+'''
+    for i in range(len(weights)):  # for each layer in network
+        guesses.append([])
+        for j in range(len(weights[i])):  # for each node in layer
+            val = 0
+            if i == 0:
+                for k in range(len(n) - numOutputs):
+                    val = thetas[i][j//numInputs]
+                    x = n[k]
+                    val += (x * weights[i][j][k])
+            else:
+                print(i,j)
+                input()
+                for k in range(len(weights[i][j])):
+                    val = thetas[i][j]
+                    x = guesses[i - 1][j]
+                    val += (x * weights[i][j][k])
 
-def backProp(n, guesses, thetas, weights):
-    error = calcError(n, guesses)
+            guesses[i].append(sigmoid(val))
+'''
 
-    theta, weights = adjustThetasWeights(n, error, guesses, thetas, weights)
+
+# How much control should users have over what runs on their devices?
+# Should their be separate feature updates
+
+
+def sumLst(L):
+    if type(L) != list:
+        return abs(L)
+    if not L:
+        return 0
+    return sumLst(L[0]) + sumLst(L[1:])
+
+
+def sigmoid(x):
+    return 1 / (1 + exp(-x))
+
+
+def backProp(n, guesses, thetas, weights, numInputs, lrate):
+    error = calcError(n, guesses, weights)
+    thetas, weights = adjustThetasWeights(n, error, guesses, thetas, weights, lrate)
 
     return error, thetas, weights
 
 
-def epoch(data, thetas, weights):
+def epoch(data, thetas, weights, numInputs, lrate):
     totalError = 0
     allGuesses = []
+
     for n in data:
         guesses = feedForward(n, thetas, weights)
-        errorLst, thetas, weights = backProp(n, guesses, thetas, weights)
+        errorLst, thetas, weights = backProp(n, guesses, thetas, weights, numInputs, lrate)
         totalError = sumLst(errorLst)
         allGuesses.append(guesses[-1])
+
     return allGuesses, totalError, thetas, weights
 
 
@@ -95,42 +136,40 @@ def initThetas(numOutputs, numHiddenLayers, numPerLayer):
     for i in range(numHiddenLayers):
         layer = []
         for j in range(numPerLayer):
-            layer.append(random())
+            layer.append(random() - .5)
         thetas.append(layer)
 
     layer = []
     for i in range(numOutputs):
-        layer.append(random())
+        layer.append(random() - .5)
     thetas.append(layer)
 
     return thetas
 
 
-def initWeights(numInputs, numOutputs, numHiddenLayers, numPerLayer):
+def initWeights(numInputs, thetas):
     weights = []
 
-    layer = []
+    inputConnections = []
     for i in range(numInputs):
-        layer.append(random())
-    weights.append(layer)
+        inputConnections.append([])
+        for j in range(len(thetas[0])):
+            inputConnections[i].append(random() - .5)
+    weights.append(inputConnections)
 
-    for i in range(numHiddenLayers):
-        layer = []
-        for j in range(numPerLayer):
-            layer.append(random())
-        weights.append(layer)
-
-    layer = []
-    for i in range(numOutputs):
-        layer.append(random())
-    weights.append(layer)
+    for i in range(0, len(thetas) - 1):  # for layer
+        weights.append([])
+        for j in range(len(thetas[i])):  # for node
+            weights[i+1].append([])
+            for k in range(len(thetas[i + 1])):
+                weights[i+1][j].append(random() - .5)
 
     return weights
 
 
 def initNet(numInputs, numOutputs, numHiddenLayers, numPerLayer):
     thetas = initThetas(numOutputs, numHiddenLayers, numPerLayer)
-    weights = initWeights(numInputs, numOutputs, numHiddenLayers, numPerLayer)
+    weights = initWeights(numInputs, thetas)
 
     return thetas, weights
 
@@ -149,31 +188,38 @@ def readInData(filename):
         realEx = []
         for num in formatted:
             realEx.append(int(num))
-        trainingSet.append(realEx)
+        if not (realEx == []):
+            trainingSet.append(realEx)
 
     return trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer
 
 
-
 def main():
     counter = 0
-    guesses = []
-
+    global trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer
     trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer = readInData('xordata.txt')
     thetas, weights = initNet(numInputs, numOutputs, numHiddenLayers, numPerLayer)
-    print(thetas)
+    print('weights')
     print(weights)
+    print('thetas')
+    print(thetas)
 
+    lrate = .1
     error = 1000
-    threshold = 0.001
+    threshold = 0.00001
+    prevError = 1000
 
     while sqrt(error ** 2) > threshold:
-        guesses, error, thetas, weights = epoch(trainingSet, thetas, weights)
-        counter += 1
+        guesses, error, thetas, weights = epoch(trainingSet, thetas, weights, numInputs, lrate)
+        error = sqrt(error ** 2)
         if counter % 1000 == 0:
+            print('weights')
+            print(weights)
+            print('thetas')
+            print(thetas)
             print("Training Values (y1 y2)")
             for set in trainingSet:
-                for num in set[2:]:
+                for num in set[numInputs:]:
                     print(num, end=' ')
                 print()
             print("Output Values (y1 y2)")
@@ -182,12 +228,12 @@ def main():
                     print('%5.3f ' % num, end='')
                 print()
             print("Error: %5.6f" % error)
+            print("Error Decreasing:", (error < prevError))
             print("Epochs:", counter)
             print()
-
-
+        prevError = error
+        counter += 1
 
 
 if __name__ == "__main__":
     main()
-
