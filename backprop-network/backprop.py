@@ -75,27 +75,6 @@ def feedForward(n, thetas, weights):
 
     return guesses
 
-'''
-    for i in range(len(weights)):  # for each layer in network
-        guesses.append([])
-        for j in range(len(weights[i])):  # for each node in layer
-            val = 0
-            if i == 0:
-                for k in range(len(n) - numOutputs):
-                    val = thetas[i][j//numInputs]
-                    x = n[k]
-                    val += (x * weights[i][j][k])
-            else:
-                print(i,j)
-                input()
-                for k in range(len(weights[i][j])):
-                    val = thetas[i][j]
-                    x = guesses[i - 1][j]
-                    val += (x * weights[i][j][k])
-
-            guesses[i].append(sigmoid(val))
-'''
-
 
 # How much control should users have over what runs on their devices?
 # Should their be separate feature updates
@@ -217,20 +196,33 @@ def printStats(weights, thetas, trainingSet, guesses, error, prevError):
     print()
 
 
+def isRight(guess, ans):
+    guessMaxIdx = guess.index(max(guess))
+    ansMaxIdx = ans.index(max(ans))
+    if guessMaxIdx == ansMaxIdx:
+        return 1
+    return 0
+
+
+def printTestSetAccuracy(testingSet, weights, thetas):
+    global numInputs
+    m = len(testingSet)
+    correct = 0
+    for n in testingSet:
+        guess = feedForward(n, thetas, weights)[-1]
+        ans = n[numInputs:]
+        correct += isRight(guess, ans)
+    print("Accuracy on test set =", 100 * (correct/m))
+
+
+
 def main():
     counter = 0
     global trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer
     trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer = readInData('data.txt')
-    testingSet = []
-    for i in range(int(len(trainingSet)*.2):
-        testingSet.append(trainingSet.pop(round()))
+    testingSet = trainingSet[120:]
+    trainingSet = trainingSet[:120]
     thetas, weights = initNet(numInputs, numOutputs, numHiddenLayers, numPerLayer)
-    '''l
-    thetas = [[.3, -.3, .2],
-              [-.2, .1, -.1]]
-    weights = [[[-.1, .2, .1], [-.2, -.1, .3], [-.3, .1, .2], [.2, -.3, .1]],
-               [[.3, .5, -.4], [.4, -.5, .3], [.5, -.4, -.3]]]
-    '''
     print('weights')
     print(weights)
     print('thetas')
@@ -238,7 +230,7 @@ def main():
 
     lrate = .1
     error = 1000
-    threshold = 0.00001
+    threshold = 0.0001
     prevError = 1000
 
     while sqrt(error ** 2) > threshold:
@@ -249,7 +241,8 @@ def main():
             print("Epochs:", counter)
             prevError = error
         counter += 1
-    print(testSetAccuracy(testingSet, weights, thetas))
+    printStats(weights, thetas, trainingSet, guesses, error, prevError)
+    printTestSetAccuracy(testingSet, weights, thetas)
 
 
 if __name__ == "__main__":
