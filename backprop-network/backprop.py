@@ -19,7 +19,7 @@ def adjustWeights(n, error, guesses, weights, lrate):
                     guess = n[j]
                 else:
                     guess = guesses[i-1][j]
-                weights[i][j][k] += error[i][j] * guess * lrate
+                weights[i][j][k] += error[i][k] * guess * lrate
 
     return weights
 
@@ -50,9 +50,6 @@ def calcError(n, guesses, weights):
                 error[i].append(guess * (1 - guess) * (n[j + numInputs] - guess))
             else:
                 error[i].append(guess * (1 - guess) * sumOfErrDrv(weights, error, i, j))
-    print(guesses)
-    print(error)
-    input()
     return error
 
 
@@ -200,15 +197,40 @@ def readInData(filename):
     return trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer
 
 
+def printStats(weights, thetas, trainingSet, guesses, error, prevError):
+    print('weights')
+    print(weights)
+    print('thetas')
+    print(thetas)
+    print("Training Values")
+    for set in trainingSet:
+        for num in set[numInputs:]:
+            print(num, end=' ')
+        print()
+    print("Output Values")
+    for guess in guesses:
+        for num in guess:
+            print('%5.3f ' % num, end='')
+        print()
+    print("Error: %5.6f" % error)
+    print("Error Decreasing:", (error < prevError))
+    print()
+
+
 def main():
     counter = 0
     global trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer
     trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer = readInData('data.txt')
+    testingSet = []
+    for i in range(int(len(trainingSet)*.2):
+        testingSet.append(trainingSet.pop(round()))
     thetas, weights = initNet(numInputs, numOutputs, numHiddenLayers, numPerLayer)
+    '''l
     thetas = [[.3, -.3, .2],
               [-.2, .1, -.1]]
     weights = [[[-.1, .2, .1], [-.2, -.1, .3], [-.3, .1, .2], [.2, -.3, .1]],
                [[.3, .5, -.4], [.4, -.5, .3], [.5, -.4, -.3]]]
+    '''
     print('weights')
     print(weights)
     print('thetas')
@@ -222,27 +244,12 @@ def main():
     while sqrt(error ** 2) > threshold:
         guesses, error, thetas, weights = epoch(trainingSet, thetas, weights, numInputs, lrate)
         error = sqrt(error ** 2)
-        if counter % 1000 == 0:
-            print('weights')
-            print(weights)
-            print('thetas')
-            print(thetas)
-            print("Training Values (y1 y2)")
-            for set in trainingSet:
-                for num in set[numInputs:]:
-                    print(num, end=' ')
-                print()
-            print("Output Values (y1 y2)")
-            for guess in guesses:
-                for num in guess:
-                    print('%5.3f ' % num, end='')
-                print()
-            print("Error: %5.6f" % error)
-            print("Error Decreasing:", (error < prevError))
+        if counter % 100 == 0:
+            printStats(weights, thetas, trainingSet, guesses, error, prevError)
             print("Epochs:", counter)
-            print()
-        prevError = error
+            prevError = error
         counter += 1
+    print(testSetAccuracy(testingSet, weights, thetas))
 
 
 if __name__ == "__main__":
