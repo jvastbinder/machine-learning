@@ -19,7 +19,7 @@ def adjustWeights(n, error, guesses, weights, lrate):
                     guess = n[j]
                 else:
                     guess = guesses[i-1][j]
-                weights[i][k][j] += error[i][k] * guess * lrate
+                weights[i][j][k] += error[i][j] * guess * lrate
 
     return weights
 
@@ -34,7 +34,7 @@ def adjustThetasWeights(n, error, guesses, thetas, weights, lrate):
 def sumOfErrDrv(weights, error, idx1, idx2):
     sumErr = 0
     for j in range(len(weights[idx1][idx2])):
-        sumErr += error[idx1 + 1][j] * weights[idx1 + 1][j][idx2]
+        sumErr += error[idx1 + 1][j] * weights[idx1 + 1][idx2][j]
     return sumErr
 
 
@@ -50,7 +50,9 @@ def calcError(n, guesses, weights):
                 error[i].append(guess * (1 - guess) * (n[j + numInputs] - guess))
             else:
                 error[i].append(guess * (1 - guess) * sumOfErrDrv(weights, error, i, j))
-
+    print(guesses)
+    print(error)
+    input()
     return error
 
 
@@ -62,12 +64,16 @@ def feedForward(n, thetas, weights):
         guesses.append([])
         for j in range(len(thetas[i])):  # for each node in layer
             val = thetas[i][j]
-            for k in range(len(weights[i][j])):  # for each connection to node
+            if i == 0:
+                length = numInputs
+            else:
+                length = len(thetas[i - 1])
+            for k in range(length):  # for each connection to node
                 if i == 0:  # if first layer use input
                     x = n[k]
                 else:  # else use previous layer's output
                     x = guesses[i - 1][k]
-                val += (x * weights[i][j][k])
+                val += (x * weights[i][k][j])
             guesses[i].append(sigmoid(val))
 
     return guesses
@@ -197,8 +203,12 @@ def readInData(filename):
 def main():
     counter = 0
     global trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer
-    trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer = readInData('xordata.txt')
+    trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer = readInData('data.txt')
     thetas, weights = initNet(numInputs, numOutputs, numHiddenLayers, numPerLayer)
+    thetas = [[.3, -.3, .2],
+              [-.2, .1, -.1]]
+    weights = [[[-.1, .2, .1], [-.2, -.1, .3], [-.3, .1, .2], [.2, -.3, .1]],
+               [[.3, .5, -.4], [.4, -.5, .3], [.5, -.4, -.3]]]
     print('weights')
     print(weights)
     print('thetas')
