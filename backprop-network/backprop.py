@@ -1,7 +1,7 @@
 from math import exp, sqrt
-from random import random
+from random import random, shuffle
 
-trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer = (0,0,0,0,0)
+trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer, counter = (0, 0, 0, 0, 0, 0)
 
 
 def adjustThetas(error, thetas, lrate):
@@ -169,7 +169,7 @@ def readInData(filename):
         formatted = example.split()
         realEx = []
         for num in formatted:
-            realEx.append(int(num))
+            realEx.append(float(num))
         if not (realEx == []):
             trainingSet.append(realEx)
 
@@ -205,7 +205,7 @@ def isRight(guess, ans):
 
 
 def printTestSetAccuracy(testingSet, weights, thetas):
-    global numInputs
+    global numInputs, counter
     m = len(testingSet)
     correct = 0
     for n in testingSet:
@@ -213,13 +213,14 @@ def printTestSetAccuracy(testingSet, weights, thetas):
         ans = n[numInputs:]
         correct += isRight(guess, ans)
     print("Accuracy on test set =", 100 * (correct/m))
+    print("Number of Epochs=", counter)
 
 
 
 def main():
-    counter = 0
-    global trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer
-    trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer = readInData('data.txt')
+    global trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer, counter
+    trainingSet, numInputs, numOutputs, numHiddenLayers, numPerLayer = readInData('outfile.txt')
+    shuffle(trainingSet)
     testingSet = trainingSet[120:]
     trainingSet = trainingSet[:120]
     thetas, weights = initNet(numInputs, numOutputs, numHiddenLayers, numPerLayer)
@@ -230,13 +231,14 @@ def main():
 
     lrate = .1
     error = 1000
-    threshold = 0.0001
+    threshold = 0.001
+    maxIters = 100000
     prevError = 1000
 
-    while sqrt(error ** 2) > threshold:
+    while sqrt(error ** 2) > threshold and counter < maxIters:
         guesses, error, thetas, weights = epoch(trainingSet, thetas, weights, numInputs, lrate)
         error = sqrt(error ** 2)
-        if counter % 100 == 0:
+        if counter % 1000 == 0:
             printStats(weights, thetas, trainingSet, guesses, error, prevError)
             print("Epochs:", counter)
             prevError = error

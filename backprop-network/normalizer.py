@@ -68,7 +68,7 @@ def main(infile, outfile):
     dataOut.close()
 
 
-main("data.txt", "outfile.txt")
+main("data1.txt", "outfile.txt")
 
 
 
