@@ -11,15 +11,9 @@ def fitnessFunc(individual):
 
 
 def calculateFitness(population):
-    # totalFitness = 0
-
     for individual in population:
         fitness = fitnessFunc(individual)
         individual[1] = fitness
-        # totalFitness += fitness
-
-    # for individual in population:
-    #     individual[2] = individual[1] / totalFitness
 
     return population
 
@@ -139,7 +133,6 @@ def mutate(individual, stringLength):
     num = int.from_bytes(individual[0], 'big', signed=False)
     mask = 1 << randint(0, stringLength - 1)
     individual[0] = int.to_bytes(num ^ mask, 4, 'big', signed=False)
-
     return individual
 
 
@@ -165,10 +158,7 @@ def populationTournament(population, n):
             individuals.append(population[idx])
 
         individuals.sort(key=lambda x: x[1])
-
         newPop.append(individuals[-1])
-
-
 
     return newPop
 
@@ -205,7 +195,7 @@ def graphStats(pop, maxs, avgs, cons):
     plt.subplot(1, 1, 1)
     plt.ylabel('Fitness')
     plt.xlabel('Iterations')
-    yellow = mpatches.Patch(color='yellow', label='Max fitness')
+    yellow = mpatches.Patch(color='orange', label='Max fitness')
     blue = mpatches.Patch(color='blue', label='Avg fitness')
     plt.legend(handles=[yellow, blue])
     plt.scatter(iters, avgs)
@@ -222,14 +212,14 @@ def printPop(pop):
         print("Fitness:", ind[1])
 
 
-def main():
-    popSize = 100
-    mutationRate = .001  # Pct chance for bit to flip
-    crossoverRate = .75  # Pct of chromosomes crossed over
-    crossoverPoints = 1
+def reproductionProcess(population, crossoverPoints, crossoverRate, mutationRate):
+    population = crossoverProcess(population, crossoverRate, crossoverPoints)
+    population = mutationProcess(population, mutationRate)
 
-    population = initPop(popSize)
+    return population
 
+
+def geneticAlgorithm(population, mutationRate, crossoverRate, crossoverPoints, verbose=False):
     converged = False
     maxs = []
     avgs = []
@@ -240,14 +230,34 @@ def main():
         maxs.append(maxFit)
         avgs.append(avgFit)
         cons.append((ypct + xpct)/2)
-        printStats(maxFit, avgFit, xpct, ypct, iters)
+        if verbose:
+            printStats(maxFit, avgFit, xpct, ypct, iters)
         if not converged:
             population = calculateFitness(population)
             population = populationTournament(population, 2)
-            population = crossoverProcess(population, crossoverRate, crossoverPoints)
-            population = mutationProcess(population, mutationRate)
+            population = reproductionProcess(population, crossoverPoints, crossoverRate, mutationRate)
             iters += 1
-    graphStats(population, maxs, avgs, cons)
+    if verbose:
+        graphStats(population, maxs, avgs, cons)
+
+    return max(population, key=lambda x: x[1])
+
+
+def main():
+    popSize = 100
+    mutationRate = .001
+    crossoverRate = .8
+    crossoverPoints = 1
+
+    population = initPop(popSize)
+
+
+    strongPop = []
+    for i in range(1000):
+        fittest = geneticAlgorithm(population, mutationRate, crossoverRate, crossoverPoints)
+        strongPop.append(fittest)
+
+    geneticAlgorithm(population, mutationRate, crossoverRate, crossoverPoints, True)
 
 
 main()
