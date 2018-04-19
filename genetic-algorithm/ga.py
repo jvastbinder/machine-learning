@@ -1,13 +1,35 @@
 from random import randint, random
-from os import urandom
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 
 def fitnessFunc(individual):
-    x = int.from_bytes(individual[0][:2], 'big', signed=False)
-    y = int.from_bytes(individual[0][2:], 'big', signed=False)
-    return (x ** 2) - (y ** 2)
+    path = individual[0]
+    # distances = [
+    #     [None, 241, 162, 351, 183],
+    #     [241, None, 202, 186, 97],
+    #     [162, 202, None, 216, 106],
+    #     [351, 186, 216, None, 186],
+    #     [183, 97, 106, 186, None]
+    # ]
+    distances = [
+        [None, 12, 3, 23, 1, 5, 32, 56],
+        [12, None, 9, 18, 3, 41, 45, 5],
+        [3, 9, None, 89, 56, 21, 12, 49],
+        [23, 18, 89, None, 87, 46, 75, 17],
+        [1, 3, 56, 87, None, 55, 22, 86],
+        [5, 41, 21, 46, 55, None, 21, 76],
+        [32, 45, 12, 75, 22, 21, None, 11],
+        [56, 5, 49, 17, 86, 76, 11, None]
+    ]
+
+    fitness = 0
+    for i in range(len(path) - 1):
+        currentCity = path[i]
+        nextCity = path[i + 1]
+        fitness += distances[currentCity][nextCity]
+
+    return fitness
 
 
 def calculateFitness(population):
@@ -20,63 +42,68 @@ def calculateFitness(population):
 
 def calcStats(population):
     popSize = len(population)
-    xs = {}
-    ys = {}
-    maxFit = 0
+    lsts = {}
+    maxFit = 1000000000
     avgFit = 0
 
     for individual in population:
         fit = individual[1]
 
-        if fit > maxFit:
+        if fit < maxFit:
             maxFit = fit
         avgFit += fit
 
-        x = int.from_bytes(individual[0][:2], 'big', signed=False)
-        if x not in xs:
-            xs[x] = 1
+        lst = tuple(individual[0])
+        if lst not in lsts:
+            lsts[lst] = 1
         else:
-            xs[x] += 1
-
-        y = int.from_bytes(individual[0][2:], 'big', signed=False)
-        if y not in ys:
-            ys[y] = 1
-        else:
-            ys[y] += 1
+            lsts[lst] += 1
 
     avgFit /= len(population)
 
-    xPctConvergence = 0
-    yPctConvergence = 0
+    maxPctConvergence = 0
+    for lst in lsts:
+        pctConvergence = lsts[lst] / popSize
+        if pctConvergence > maxPctConvergence:
+            maxPctConvergence = pctConvergence
 
-    for x in xs:
-        pctConvergence = xs[x] / popSize
-        if pctConvergence > xPctConvergence:
-            xPctConvergence = pctConvergence
+    converged = maxPctConvergence > .95
 
-    for y in ys:
-        pctConvergence = ys[y] / popSize
-        if pctConvergence > yPctConvergence:
-            yPctConvergence = pctConvergence
-
-    converged = ((xPctConvergence > .95) and (yPctConvergence > .95))
-
-    return converged, xPctConvergence, yPctConvergence, maxFit, avgFit
+    return converged, maxPctConvergence, maxPctConvergence, maxFit, avgFit
 
 
-def initPop(popSize):
+def initPop(populationSize, startingCity, totalCities):
     population = []
 
-    for i in range(popSize):
-        individual = [urandom(4), 0]  # , 0]
+    while len(population) < populationSize:
+        individual = [[startingCity], 0]
+        while len(individual[0]) < totalCities:
+            nextCity = randint(0, totalCities - 1)
+            while nextCity in individual[0]:
+                nextCity = randint(0, totalCities - 1)
+
+            individual[0].append(nextCity)
         population.append(individual)
 
     return population
 
 
+def cleanUpChromosomes(individual1, individual2):
+    for i in range(1, len(individual1)):
+        if individual1[i] not in individual2:
+            swapVal1 = individual1.pop(i)
+            for j in range(1, len(individual2)):
+                if individual2[j] not in individual1:
+                    swapVal2 = individual2.pop(j)
+                    individual1.insert(i, swapVal2)
+                    individual2.insert(j, swapVal1)
+                    break
+
+    return individual1, individual2
+
+
 def onePointCrossover(individual1, individual2, stringLength):
-    # TODO figure out how to swap at the bit level?
-    swapIdx = randint(0, stringLength/8 - 1)
+    swapIdx = randint(1, stringLength - 1)
 
     tmp1 = individual1[0][swapIdx:]
     tmp2 = individual2[0][swapIdx:]
@@ -84,15 +111,16 @@ def onePointCrossover(individual1, individual2, stringLength):
     individual1[0] = individual1[0][:swapIdx] + tmp2
     individual2[0] = individual2[0][:swapIdx] + tmp1
 
+    individual1[0], individual2[0] = cleanUpChromosomes(individual1[0], individual2[0])
+
     return individual1, individual2
 
 
 def twoPointCrossover(individual1, individual2, stringLength):
-    # TODO figure out how to swap at the bit level?
-    swapIdx1 = randint(0, stringLength/8 - 1)
-    swapIdx2 = randint(0, stringLength/8 - 1)
+    swapIdx1 = randint(1, stringLength - 1)
+    swapIdx2 = randint(1, stringLength - 1)
     while swapIdx2 == swapIdx1:
-        swapIdx2 = randint(0, stringLength - 1)
+        swapIdx2 = randint(1, stringLength - 1)
 
     if swapIdx1 > swapIdx2:
         bigIdx = swapIdx1 + 1
@@ -107,11 +135,13 @@ def twoPointCrossover(individual1, individual2, stringLength):
     individual1[0] = individual1[0][:lilIdx] + tmp2 + individual1[0][bigIdx:]
     individual2[0] = individual2[0][:lilIdx] + tmp1 + individual2[0][bigIdx:]
 
+    individual1[0], individual2[0] = cleanUpChromosomes(individual1[0], individual2[0])
+
     return individual1, individual2
 
 
 def crossoverProcess(population, crossoverRate, crossoverPoints):
-    stringLength = 32
+    stringLength = 8
 
     if crossoverPoints == 1:
         crossoverStrategy = onePointCrossover
@@ -130,14 +160,20 @@ def crossoverProcess(population, crossoverRate, crossoverPoints):
 
 
 def mutate(individual, stringLength):
-    num = int.from_bytes(individual[0], 'big', signed=False)
-    mask = 1 << randint(0, stringLength - 1)
-    individual[0] = int.to_bytes(num ^ mask, 4, 'big', signed=False)
+    idx1 = randint(1, stringLength - 1)
+    idx2 = randint(1, stringLength - 1)
+    while idx1 == idx2:
+        idx2 = randint(1, stringLength - 1)
+
+    tmp = individual[0][idx1]
+    individual[0][idx1] = individual[0][idx2]
+    individual[0][idx2] = tmp
+
     return individual
 
 
 def mutationProcess(population, mutationRate):
-    stringLength = 32
+    stringLength = 8
 
     for i in range(len(population)):
         if random() < (mutationRate * stringLength):
@@ -158,7 +194,7 @@ def populationTournament(population, n):
             individuals.append(population[idx])
 
         individuals.sort(key=lambda x: x[1])
-        newPop.append(individuals[-1])
+        newPop.append(individuals[0])
 
     return newPop
 
@@ -195,7 +231,7 @@ def graphStats(pop, maxs, avgs, cons):
     plt.subplot(1, 1, 1)
     plt.ylabel('Fitness')
     plt.xlabel('Iterations')
-    yellow = mpatches.Patch(color='orange', label='Max fitness')
+    yellow = mpatches.Patch(color='orange', label='Min fitness')
     blue = mpatches.Patch(color='blue', label='Avg fitness')
     plt.legend(handles=[yellow, blue])
     plt.scatter(iters, avgs)
@@ -240,24 +276,25 @@ def geneticAlgorithm(population, mutationRate, crossoverRate, crossoverPoints, v
     if verbose:
         graphStats(population, maxs, avgs, cons)
 
-    return max(population, key=lambda x: x[1])
+    return min(population, key=lambda x: x[1])
 
+def printIndividual(ind):
+    print()
+    print("Path:", ind[0])
+    print("Fitness", ind[1])
 
 def main():
     popSize = 100
-    mutationRate = .001
-    crossoverRate = .8
-    crossoverPoints = 1
+    mutationRate = .01
+    crossoverRate = .7
+    crossoverPoints = 2
+    startingCity = 1
+    totalCities = 8
 
-    population = initPop(popSize)
+    population = initPop(popSize, startingCity, totalCities)
 
+    fittest = geneticAlgorithm(population, mutationRate, crossoverRate, crossoverPoints, True)
 
-    strongPop = []
-    for i in range(1000):
-        fittest = geneticAlgorithm(population, mutationRate, crossoverRate, crossoverPoints)
-        strongPop.append(fittest)
-
-    geneticAlgorithm(population, mutationRate, crossoverRate, crossoverPoints, True)
-
+    printIndividual(fittest)
 
 main()
