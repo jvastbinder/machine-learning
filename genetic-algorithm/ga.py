@@ -29,6 +29,8 @@ def fitnessFunc(individual):
         nextCity = path[i + 1]
         fitness += distances[currentCity][nextCity]
 
+    fitness += distances[path[0]][path[-1]]
+
     return fitness
 
 
@@ -288,12 +290,18 @@ def main():
     mutationRate = .01
     crossoverRate = .7
     crossoverPoints = 2
-    startingCity = 1
+    startingCity = 0
     totalCities = 8
 
     population = initPop(popSize, startingCity, totalCities)
 
-    fittest = geneticAlgorithm(population, mutationRate, crossoverRate, crossoverPoints, True)
+    strongest = []
+    for i in range(100):
+        fittest = geneticAlgorithm(population, mutationRate, crossoverRate, crossoverPoints)
+        strongest.append(fittest)
+
+    fittest = geneticAlgorithm(strongest, mutationRate, crossoverRate, crossoverPoints, True)
+
 
     printIndividual(fittest)
 
