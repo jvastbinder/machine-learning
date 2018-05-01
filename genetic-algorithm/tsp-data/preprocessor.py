@@ -25,9 +25,13 @@ def preprocessor(infile, numDocLines):
     distMatrix = []
     for i in range(len(coordMatrix)):
         distMatrix.append([])
+        if i % 1000 == 0:
+            print(i, "rows written")
         for j in range(len(coordMatrix)):
             distMatrix[i].append(dist(coordMatrix[i], coordMatrix[j]))
 
+    print("Alls rows written")
+    print("Pickle being written")
     pList = open("swedenPickle.pk1", 'wb')
     pickle.dump(distMatrix, pList)
 
