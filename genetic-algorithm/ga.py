@@ -1,10 +1,14 @@
 from random import randint, random
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import pickle
 
 
 def fitnessFunc(individual):
     path = individual[0]
+    picklefile = open("tsp-data/wSaharaPickle.pk1", "rb")
+    distances = pickle.load(picklefile)
+
     # distances = [
     #     [None, 241, 162, 351, 183],
     #     [241, None, 202, 186, 97],
@@ -12,16 +16,16 @@ def fitnessFunc(individual):
     #     [351, 186, 216, None, 186],
     #     [183, 97, 106, 186, None]
     # ]
-    distances = [
-        [None, 12, 3, 23, 1, 5, 32, 56],
-        [12, None, 9, 18, 3, 41, 45, 5],
-        [3, 9, None, 89, 56, 21, 12, 49],
-        [23, 18, 89, None, 87, 46, 75, 17],
-        [1, 3, 56, 87, None, 55, 22, 86],
-        [5, 41, 21, 46, 55, None, 21, 76],
-        [32, 45, 12, 75, 22, 21, None, 11],
-        [56, 5, 49, 17, 86, 76, 11, None]
-    ]
+    # distances = [
+    #     [None, 12, 3, 23, 1, 5, 32, 56],
+    #     [12, None, 9, 18, 3, 41, 45, 5],
+    #     [3, 9, None, 89, 56, 21, 12, 49],
+    #     [23, 18, 89, None, 87, 46, 75, 17],
+    #     [1, 3, 56, 87, None, 55, 22, 86],
+    #     [5, 41, 21, 46, 55, None, 21, 76],
+    #     [32, 45, 12, 75, 22, 21, None, 11],
+    #     [56, 5, 49, 17, 86, 76, 11, None]
+    # ]
 
     fitness = 0
     for i in range(len(path) - 1):
@@ -291,7 +295,7 @@ def main():
     crossoverRate = .7
     crossoverPoints = 2
     startingCity = 0
-    totalCities = 8
+    totalCities = 29
 
     population = initPop(popSize, startingCity, totalCities)
 

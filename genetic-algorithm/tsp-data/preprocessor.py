@@ -30,10 +30,13 @@ def preprocessor(infile, numDocLines):
         for j in range(len(coordMatrix)):
             distMatrix[i].append(dist(coordMatrix[i], coordMatrix[j]))
 
+    print()
+    print()
+    print()
     print("Alls rows written")
     print("Pickle being written")
-    pList = open("swedenPickle.pk1", 'wb')
+    pList = open("wSaharaPickle.pk1", 'wb')
     pickle.dump(distMatrix, pList)
 
 
-preprocessor("sw24978.tsp", 7)
+preprocessor("wi29.tsp", 7)
