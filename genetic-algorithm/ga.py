@@ -1,13 +1,15 @@
-from random import randint, random
+#!/usr/bin/python3
+
+from random import randint, random, sample, shuffle
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import pickle
+import time
 
 
 def fitnessFunc(individual):
+    global distances
     path = individual[0]
-    picklefile = open("tsp-data/wSaharaPickle.pk1", "rb")
-    distances = pickle.load(picklefile)
 
     # distances = [
     #     [None, 241, 162, 351, 183],
@@ -82,13 +84,9 @@ def initPop(populationSize, startingCity, totalCities):
     population = []
 
     while len(population) < populationSize:
-        individual = [[startingCity], 0]
-        while len(individual[0]) < totalCities:
-            nextCity = randint(0, totalCities - 1)
-            while nextCity in individual[0]:
-                nextCity = randint(0, totalCities - 1)
-
-            individual[0].append(nextCity)
+        cities = list(range(totalCities))
+        shuffle(cities)
+        individual = [cities, 0]
         population.append(individual)
 
     return population
@@ -106,6 +104,57 @@ def cleanUpChromosomes(individual1, individual2):
                     break
 
     return individual1, individual2
+
+def ox1(individual1, individual2):
+    # stringLength = len(individual1[0])
+    #
+    # swapIdx1 = randint(1, stringLength - 1)
+    # swapIdx2 = randint(1, stringLength - 1)
+    #
+    # if swapIdx1 > swapIdx2:
+    #     bigIdx = swapIdx1 + 1
+    #     lilIdx = swapIdx2
+    # else:
+    #     bigIdx = swapIdx2 + 1
+    #     lilIdx = swapIdx1
+    #
+    # tmp1 = individual1[0][bigIdx:lilIdx]
+    # tmp2 = individual2[0][bigIdx:lilIdx]
+    # return individual1, individual2
+    ind1 = individual1[0]
+    ind2 = individual2[0]
+    size = min(len(ind1), len(ind2))
+    a, b = sample(range(size), 2)
+    if a > b:
+        a, b = b, a
+
+    holes1, holes2 = [True] * size, [True] * size
+    for i in range(size):
+        if i < a or i > b:
+            holes1[ind2[i]] = False
+            holes2[ind1[i]] = False
+
+    # We must keep the original values somewhere before scrambling everything
+    temp1, temp2 = ind1, ind2
+    k1, k2 = b + 1, b + 1
+    for i in range(size):
+        if not holes1[temp1[(i + b + 1) % size]]:
+            ind1[k1 % size] = temp1[(i + b + 1) % size]
+            k1 += 1
+
+        if not holes2[temp2[(i + b + 1) % size]]:
+            ind2[k2 % size] = temp2[(i + b + 1) % size]
+            k2 += 1
+
+    # Swap the content between a and b (included)
+    for i in range(a, b + 1):
+        ind1[i], ind2[i] = ind2[i], ind1[i]
+
+    individual1[0] = ind1
+    individual2[0] = ind2
+
+    return individual1, individual2
+
 
 
 def onePointCrossover(individual1, individual2, stringLength):
@@ -159,9 +208,9 @@ def crossoverProcess(population, crossoverRate, crossoverPoints):
             secondParentIdx = i
             while secondParentIdx == i:
                 secondParentIdx = randint(0, len(population) - 1)
-            population[i], population[secondParentIdx] = crossoverStrategy(population[i],
-                                                                           population[secondParentIdx],
-                                                                           stringLength)
+            population[i], population[secondParentIdx] = ox1(population[i],
+                                                             population[secondParentIdx])
+
     return population
 
 
@@ -171,9 +220,8 @@ def mutate(individual, stringLength):
     while idx1 == idx2:
         idx2 = randint(1, stringLength - 1)
 
-    tmp = individual[0][idx1]
-    individual[0][idx1] = individual[0][idx2]
-    individual[0][idx2] = tmp
+    tmp = individual[0][idx1:idx2]
+    individual[0][idx1:idx2] = tmp[::-1]
 
     return individual
 
@@ -197,10 +245,10 @@ def populationTournament(population, n):
         for i in range(n):
             idx = randint(0, popSize - 1)
             individual = population[idx]
-            individuals.append(population[idx])
+            individuals.append(individual)
 
-        individuals.sort(key=lambda x: x[1])
-        newPop.append(individuals[0])
+        winner = min(individuals, key=lambda x: x[1])[0]
+        newPop.append([winner, fitnessFunc([winner, 0])])
 
     return newPop
 
@@ -290,21 +338,25 @@ def printIndividual(ind):
     print("Fitness", ind[1])
 
 def main():
-    popSize = 100
+    popSize = 250
     mutationRate = .01
-    crossoverRate = .7
+    crossoverRate = .8
     crossoverPoints = 2
     startingCity = 0
-    totalCities = 29
+
+    picklefile = open("tsp-data/luxembourgPickle.pk1", "rb")
+    global distances
+    print("loading pickle")
+    distances = pickle.load(picklefile)
+    totalCities = len(distances[0])
+    print("pickle loaded")
 
     population = initPop(popSize, startingCity, totalCities)
 
-    strongest = []
-    for i in range(100):
-        fittest = geneticAlgorithm(population, mutationRate, crossoverRate, crossoverPoints)
-        strongest.append(fittest)
+    start = time.time()
+    fittest = geneticAlgorithm(population, mutationRate, crossoverRate, crossoverPoints, True)
+    print("Time to run:", time.time() - start)
 
-    fittest = geneticAlgorithm(strongest, mutationRate, crossoverRate, crossoverPoints, True)
 
 
     printIndividual(fittest)
