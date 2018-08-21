@@ -80,7 +80,7 @@ def calcStats(population):
     return converged, maxPctConvergence, maxPctConvergence, maxFit, avgFit
 
 
-def initPop(populationSize, startingCity, totalCities):
+def initPop(populationSize, totalCities):
     population = []
 
     while len(population) < populationSize:
@@ -220,8 +220,15 @@ def mutate(individual, stringLength):
     while idx1 == idx2:
         idx2 = randint(1, stringLength - 1)
 
-    tmp = individual[0][idx1:idx2]
-    individual[0][idx1:idx2] = tmp[::-1]
+    if idx1 > idx2:
+        bigidx = idx1
+        lilidx = idx2
+    else:
+        bigidx = idx2
+        lilidx = idx1
+
+    tmp = individual[0][bigidx:lilidx]
+    individual[0][bigidx:lilidx] = tmp[::-1]
 
     return individual
 

@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import math
 import pickle
 
@@ -35,8 +37,8 @@ def preprocessor(infile, numDocLines):
     print()
     print("Alls rows written")
     print("Pickle being written")
-    pList = open("wSaharaPickle.pk1", 'wb')
+    pList = open("luxembourgPickle.pk1", 'wb')
     pickle.dump(distMatrix, pList)
 
 
-preprocessor("wi29.tsp", 7)
+preprocessor("lu980.tsp", 7)
